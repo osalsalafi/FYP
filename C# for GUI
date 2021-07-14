@@ -1,0 +1,304 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.IO.Ports;
+
+namespace Csahrp_send_data_to_Arduino__and_Arduino_send_data_back_to_Csharp
+{
+    public partial class Form1 : Form
+    {
+        string serialDataIn;
+        sbyte indexOfA, indexOfB, indexOfC, indexOfD, indexOfE, indexOfF, indexOfG, indexOfH, indexOfI;
+        string getLEG1, getLEG2, getLEG3, getAngleX, getAngleY, getAngleZ, getthetaX, getthetaY, getthetaZ;
+        double int_degreeX, int_degreeY, int_degreeZ;
+        double double_degreeX, double_degreeY, double_degreeZ;
+
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            button_open.Enabled = true;
+            button_close.Enabled = false;
+            button_send.Enabled = false;
+            groupBox_coordinates.Enabled = false;
+            groupBox2.Enabled = false;
+            progressBar_statusBar.Value = 0;
+            label_status.Text = "DISCONNECTED";
+            label_status.ForeColor = Color.Red;
+
+            comboBox_baudRate.Text = "9600";
+            string[] portLists = SerialPort.GetPortNames();
+            comboBox_comPort.Items.AddRange(portLists);
+        }
+
+        private void button_open_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                serialPort1.PortName = comboBox_comPort.Text;
+                serialPort1.BaudRate = Convert.ToInt32(comboBox_baudRate.Text);
+                serialPort1.Open();
+
+                button_open.Enabled = false;
+                button_close.Enabled = true;
+                button_send.Enabled = true;
+                groupBox_coordinates.Enabled = true;
+                groupBox2.Enabled = true;
+
+                progressBar_statusBar.Value = 100;
+                label_status.Text = "CONNECTED";
+                label_status.ForeColor = Color.Green;
+            }
+            catch (Exception error)
+            {
+                MessageBox.Show(error.Message);
+            }
+        }
+
+        private void label17_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox_getthetaX_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox_getAngleX_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button_close_Click(object sender, EventArgs e)
+        {
+            if (serialPort1.IsOpen)
+            {
+                try
+                {
+                    serialPort1.Close();
+
+                    button_open.Enabled = true;
+                    button_close.Enabled = false;
+                    button_send.Enabled = false;
+                    groupBox_coordinates.Enabled = false;
+                    groupBox2.Enabled = false;
+
+                    progressBar_statusBar.Value = 0;
+                    label_status.Text = "DISCONNECTED";
+                    label_status.ForeColor = Color.Red;
+                }
+                catch (Exception error)
+                {
+                    MessageBox.Show(error.Message);
+                }
+            }
+        }
+
+        private void trackBar_degreeY_Scroll(object sender, EventArgs e)
+        {
+            if (serialPort1.IsOpen)
+            {
+                int_degreeY = trackBar_degreeY.Value;
+                double_degreeY = int_degreeY;
+
+                label_degreeY.Text = string.Format("LEG2 Extension : {0} mm", int_degreeY);
+                textBox_textSentY.Text = int_degreeY.ToString();
+            }
+        }
+
+        private void trackBar_degreeZ_Scroll(object sender, EventArgs e)
+        {
+            if (serialPort1.IsOpen)
+            {
+                int_degreeZ = trackBar_degreeZ.Value;
+                double_degreeZ = int_degreeZ / 100;
+
+
+                label_degreeZ.Text = string.Format("LEG3 Extension : {0} mm", int_degreeZ);
+                textBox_textSentZ.Text = int_degreeZ.ToString();
+            }
+        }
+
+        private void trackBar_degreeX_Scroll(object sender, EventArgs e)
+        {
+            if (serialPort1.IsOpen)
+            {
+                int_degreeX = trackBar_degreeX.Value;
+                double_degreeX = int_degreeX/100;
+
+
+                label_degreeX.Text = string.Format("LEG1 Extension : {0} mm", int_degreeX);
+                textBox_textSentX.Text = int_degreeX.ToString();
+            }
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                textBox_textSentX.Text = "0";
+                textBox_textSentY.Text = "0";
+                textBox_textSentZ.Text = "0";
+
+                serialPort1.Write(textBox_textSentX.Text + "A" + textBox_textSentY.Text + "B" + textBox_textSentZ.Text + "C" + "\n");
+                label_degreeX.Text = "LEG1 Extension : " + textBox_textSentX.Text + "mm";
+                label_degreeY.Text = "LEG2 Extension : " + textBox_textSentY.Text + "mm";
+                label_degreeZ.Text = "LEG3 Extension : " + textBox_textSentZ.Text + "mm";
+                double double_trackBar_degreeX = Convert.ToDouble(textBox_textSentX.Text);
+                double double_trackBar_degreeY = Convert.ToDouble(textBox_textSentY.Text);
+                double double_trackBar_degreeZ = Convert.ToDouble(textBox_textSentZ.Text);
+
+                int int_trackBar_degreeX = Convert.ToInt32(double_trackBar_degreeX) * 100;
+                int int_trackBar_degreeY = Convert.ToInt32(double_trackBar_degreeY) * 100;
+                int int_trackBar_degreeZ = Convert.ToInt32(double_trackBar_degreeZ) * 100;
+
+                trackBar_degreeX.Value = int_trackBar_degreeX;
+                trackBar_degreeY.Value = int_trackBar_degreeY;
+                trackBar_degreeZ.Value = int_trackBar_degreeZ;
+
+
+            }
+            catch (Exception error)
+            {
+                MessageBox.Show(error.Message);
+            }
+        }
+
+        private void label6_Click_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label6_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void groupBox3_Enter(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox_textSentX_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void trackBar_degree_Scroll(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (serialPort1.IsOpen)
+            {
+                try
+                {
+
+                    serialPort1.Close();
+                }
+                catch (Exception error)
+                {
+                    MessageBox.Show(error.Message);
+                }
+            }
+        }
+
+        private void button_send_Click(object sender, EventArgs e)
+        {
+            try
+            {
+
+                serialPort1.Write(textBox_textSentX.Text + "A" + textBox_textSentY.Text + "B" + textBox_textSentZ.Text + "C" + "\n");
+                label_degreeX.Text = "LEG1 Extension : " + textBox_textSentX.Text + "mm";
+                label_degreeY.Text = "LEG2 Extension : " + textBox_textSentY.Text + "mm";
+                label_degreeZ.Text = "LEG3 Extension : " + textBox_textSentZ.Text + "mm";
+                double double_trackBar_degreeX = Convert.ToDouble(textBox_textSentX.Text);
+                double double_trackBar_degreeY = Convert.ToDouble(textBox_textSentY.Text);
+                double double_trackBar_degreeZ = Convert.ToDouble(textBox_textSentZ.Text);
+
+                int int_trackBar_degreeX = Convert.ToInt32(double_trackBar_degreeX) ;
+                int int_trackBar_degreeY = Convert.ToInt32(double_trackBar_degreeY) ;
+                int int_trackBar_degreeZ = Convert.ToInt32(double_trackBar_degreeZ) ;
+
+                trackBar_degreeX.Value = int_trackBar_degreeX;
+                trackBar_degreeY.Value = int_trackBar_degreeY;
+                trackBar_degreeZ.Value = int_trackBar_degreeZ;
+
+
+            }
+            catch (Exception error)
+            {
+                MessageBox.Show(error.Message);
+            }
+        }
+
+        private void serialPort1_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            serialDataIn = serialPort1.ReadLine();
+            this.BeginInvoke(new EventHandler(ProcessData));
+        }
+
+        private void ProcessData(object sender, EventArgs e)
+        {
+            try
+            {
+
+                indexOfA = Convert.ToSByte(serialDataIn.IndexOf("A"));
+                indexOfB = Convert.ToSByte(serialDataIn.IndexOf("B"));
+                indexOfC = Convert.ToSByte(serialDataIn.IndexOf("C"));
+                indexOfD = Convert.ToSByte(serialDataIn.IndexOf("D"));
+                indexOfE = Convert.ToSByte(serialDataIn.IndexOf("E"));
+                indexOfF = Convert.ToSByte(serialDataIn.IndexOf("F"));
+                indexOfG = Convert.ToSByte(serialDataIn.IndexOf("G"));
+                indexOfH = Convert.ToSByte(serialDataIn.IndexOf("H"));
+                indexOfI = Convert.ToSByte(serialDataIn.IndexOf("I"));
+
+
+                getLEG1 = serialDataIn.Substring(0, indexOfA);
+                getLEG2 = serialDataIn.Substring(indexOfA + 1, (indexOfB - indexOfA) - 1);
+                getLEG3 = serialDataIn.Substring(indexOfB + 1, (indexOfC - indexOfB) - 1);
+                getAngleX = serialDataIn.Substring(indexOfC + 1, (indexOfD - indexOfC) - 1);
+                getAngleY = serialDataIn.Substring(indexOfD + 1, (indexOfE - indexOfD) - 1);
+                getAngleZ = serialDataIn.Substring(indexOfE + 1, (indexOfF - indexOfE) - 1);
+                getthetaX = serialDataIn.Substring(indexOfF + 1, (indexOfG - indexOfF) - 1);
+                getthetaY = serialDataIn.Substring(indexOfG + 1, (indexOfH - indexOfG) - 1);
+                getthetaZ = serialDataIn.Substring(indexOfH + 1, (indexOfI - indexOfH) - 1);
+
+
+                textBox_getLEG1.Text = getLEG1;
+                textBox_getLEG2.Text = getLEG2;
+                textBox_getLEG3.Text = getLEG3;
+                textBox_getAngleX.Text = getAngleX;
+                textBox_getAngleY.Text = getAngleY;
+                textBox_getAngleZ.Text = getAngleZ;
+                textBox_getthetaX.Text = getthetaX;
+                textBox_getthetaY.Text = getthetaY;
+                textBox_getthetaZ.Text = getthetaZ;
+
+
+
+
+            }
+            catch (Exception error)
+            {
+                MessageBox.Show(error.Message);
+            }
+
+
+        }
+
+
+    }
+}
