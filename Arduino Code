@@ -196,7 +196,6 @@ double computePID1(double inp1){
         double out1 = kp1*error1 + ki1*cumError1 + kd1*rateError1;                //PID output               
         lastError1 = error1;                                //remember current error
         previousTime1 = currentTime1;                        //remember current time
-        out1=255;
         return out1;                                        //have function return the PID output
 }
 double computePID2(double inp2){     
@@ -208,7 +207,6 @@ double computePID2(double inp2){
         double out2 = kp2*error2 + ki2*cumError2 + kd2*rateError2;                //PID output               
         lastError2 = error2;                                //remember current error
         previousTime2 = currentTime2;                        //remember current time
-        out2=255;
         return out2;                                        //have function return the PID output
 }
 double computePID3(double inp3){     
@@ -220,7 +218,6 @@ double computePID3(double inp3){
         double out3 = kp3*error3 + ki3*cumError3 + kd3*rateError3;                //PID output               
         lastError3 = error3;                                //remember current error
         previousTime3 = currentTime3;                        //remember current time
-        out3=255;
         return out3;                                        //have function return the PID output
 
 }
