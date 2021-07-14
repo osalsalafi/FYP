@@ -1,0 +1,287 @@
+/* Get tilt angles on X and Y, and rotation angle on Z
+ * Angles are given in degrees
+ * 
+ * License: MIT
+ */
+#include "Wire.h"
+#include <MPU6050_light.h>
+#include <Wire.h>
+const int MPU = 0x68; // MPU6050 I2C address
+float GyroX, GyroY, GyroZ;
+float gyroAngleX, gyroAngleY, gyroAngleZ;
+float GyroErrorX, GyroErrorY, GyroErrorZ;
+float elapsedTime, currentTime, previousTime;
+float zaiG=0, thetaG=0, phaiG=0;
+float zaidotG=0, thetadotG=0, phaidotG=0;
+int i=0;
+int d = 0;
+MPU6050 mpu(Wire);
+unsigned long timer = 0;
+double thetaX,thetaY,thetaZ;
+unsigned long currentTime1,currentTime2,currentTime3, previousTime1, previousTime2, previousTime3;
+double elapsedTime1,elapsedTime2,elapsedTime3;
+double error1,error2,error3;
+double lastError1,lastError2,lastError3;
+double input1 , output1, setpoint1=0;
+double input2 , output2, setpoint2=0;
+double input3 , output3, setpoint3=0;
+double cumError1, rateError1,cumError2, rateError2,cumError3, rateError3;
+//PID constants
+double kp1 = 779.3666 , kp2 = 770.1904 , kp3 = 958.2251 ;
+double ki1 = 153.2003 , ki2 = 151.3965 , ki3 = 188.3586;
+double kd1 = 0        , kd2 = 0        , kd3 = 0;
+int inputDistance1, inputDistance2,inputDistance3;
+double outputDistance1,outputDistance2, outputDistance3;
+char c; //use to save every incoming data from C# panel
+String dataIn; //use it save data from c variable
+int8_t indexOfA, indexOfB, indexOfC; //Variables to distanguash between the inputs
+int In11 = 5; //Pin of motor driver of Link1 # Extend when high
+int In21 = 4; //Pin of motor driver of Link1 # Retract when high
+int ENA1 = 3; //Pin of motor driver of Link1 # PWM
+int In12 = 11; //Pin of motor driver of Link2 # Extend when high
+int In22 = 10; //Pin of motor driver of Link2 # Retract when high
+int ENA2 = 9; //Pin of motor driver of Link2 # PWM
+int In13 = 8; //Pin of motor driver of Link3 # Extend when high
+int In23 = 7; //Pin of motor driver of Link3 # Retract when high
+int ENA3 = 6; //Pin of motor driver of Link3 # PWM
+int potmeterPin1 = A0;              // Slide potentiometer on pin A0
+int potmeterPin2 = A2;              // Slide potentiometer on pin A1
+int potmeterPin3 = A1;              // Slide potentiometer on pin A2
+int degree;
+void setup() {
+  Serial.begin(9600);
+  Wire.begin();
+  byte status = mpu.begin();
+  while(status!=0){ } // stop everything if could not connect to MPU6050
+  delay(1000);
+  mpu.calcOffsets(); // gyro and accelero
+   pinMode(In11, OUTPUT);
+   pinMode(In21, OUTPUT);
+   pinMode(ENA1, OUTPUT);
+   pinMode(In12, OUTPUT);
+   pinMode(In22, OUTPUT);
+   pinMode(ENA2, OUTPUT);
+   pinMode(In13, OUTPUT);
+   pinMode(In23, OUTPUT);
+   pinMode(ENA3, OUTPUT);
+   input1 = analogRead(potmeterPin1);    // Read the analog value of the slide potentiometer
+   inputDistance1 = round((input1-120)/27);
+   input2 = analogRead(potmeterPin2);    // Read the analog value of the slide potentiometer
+   inputDistance2 = round((input2-120)/27);
+   input3 = analogRead(potmeterPin3);    // Read the analog value of the slide potentiometer
+   inputDistance3 = round((input3-120)/27);
+}
+void loop() {
+  mpu.update();
+  Receive_Serial_Data();
+  if (c == '\n')
+  {
+    Parse_the_data();
+    c=0;
+    dataIn="";
+  }
+// LINK1
+        while(setpoint1 != inputDistance1 )
+        {
+        while ( setpoint1 > inputDistance1 )
+        {
+        input1 = analogRead(potmeterPin1);    // Read the analog value of the slide potentiometer
+        inputDistance1 = round((input1-120)/27);
+        outputDistance1 = computePID1(inputDistance1);
+        digitalWrite(In11, HIGH);
+        digitalWrite(In21, LOW);
+        analogWrite(ENA1,outputDistance1);
+        getangularveolcity();
+        mpu.update();
+        Serial.print(String(inputDistance1)+ "A" + String(inputDistance2)+ "B" + String(inputDistance3)+ "C");
+        Serial.print(String(mpu.getAngleX()) + "D" + String(mpu.getAngleY())+ "E" + String(mpu.getAngleZ())+ "F");
+        Serial.println(String(zaiG) + "G" + String(thetaG)+ "H" + String(phaiG)+ "I");        delay(250);
+        }
+        while ( setpoint1 < inputDistance1 )
+        {
+        input1 = analogRead(potmeterPin1);    // Read the analog value of the slide potentiometer
+        inputDistance1 = round((input1-120)/27);
+        outputDistance1 = computePID1(inputDistance1);
+        digitalWrite(In11, LOW);
+        digitalWrite(In21, HIGH);
+        analogWrite(ENA1,outputDistance1);
+        getangularveolcity();
+        mpu.update();
+        Serial.print(String(inputDistance1)+ "A" + String(inputDistance2)+ "B" + String(inputDistance3)+ "C");
+        Serial.print(String(mpu.getAngleX()) + "D" + String(mpu.getAngleY())+ "E" + String(mpu.getAngleZ())+ "F");
+        Serial.println(String(zaiG) + "G" + String(thetaG)+ "H" + String(phaiG)+ "I");        delay(250);
+        }   
+        }
+        digitalWrite(In11, LOW);
+        digitalWrite(In21, LOW);
+        analogWrite(ENA1,255);
+//LINK2
+      while(setpoint2 != inputDistance2 )
+        {
+        while ( setpoint2 > inputDistance2 )
+        {
+        input2 = analogRead(potmeterPin2);    // Read the analog value of the slide potentiometer
+        inputDistance2 = round((input2-120)/27);
+        outputDistance2 = computePID2(inputDistance2);
+        digitalWrite(In12, HIGH);
+        digitalWrite(In22, LOW);
+        analogWrite(ENA2,outputDistance2);
+        getangularveolcity();
+        mpu.update();
+        Serial.print(String(inputDistance1)+ "A" + String(inputDistance2)+ "B" + String(inputDistance3)+ "C");
+        Serial.print(String(mpu.getAngleX()) + "D" + String(mpu.getAngleY())+ "E" + String(mpu.getAngleZ())+ "F");
+        Serial.println(String(zaiG) + "G" + String(thetaG)+ "H" + String(phaiG)+ "I");        delay(250);
+        }
+        while ( setpoint2 < inputDistance2 )
+        {
+        input2 = analogRead(potmeterPin2);    // Read the analog value of the slide potentiometer
+        inputDistance2 = round((input2-120)/27);
+        outputDistance2 = computePID2(inputDistance2);
+        digitalWrite(In12, LOW);
+        digitalWrite(In22, HIGH);
+        analogWrite(ENA2,outputDistance2);
+        getangularveolcity();
+        mpu.update();
+        Serial.print(String(inputDistance1)+ "A" + String(inputDistance2)+ "B" + String(inputDistance3)+ "C");
+        Serial.print(String(mpu.getAngleX()) + "D" + String(mpu.getAngleY())+ "E" + String(mpu.getAngleZ())+ "F");
+        Serial.println(String(zaiG) + "G" + String(thetaG)+ "H" + String(phaiG)+ "I");       delay(250);
+        }
+        }
+        digitalWrite(In12, LOW);
+        digitalWrite(In22, LOW);
+        analogWrite(ENA2,255);
+//LINK3
+        while(setpoint3 != inputDistance3 )
+        {
+        while ( setpoint3 > inputDistance3 )
+        {
+        input3 = analogRead(potmeterPin3);    // Read the analog value of the slide potentiometer
+        inputDistance3 = round((input3-120)/27);
+        outputDistance3 = computePID3(inputDistance3);
+        digitalWrite(In13, HIGH);
+        digitalWrite(In23, LOW);
+        analogWrite(ENA3,outputDistance3);
+        getangularveolcity();
+        mpu.update();
+        Serial.print(String(inputDistance1)+ "A" + String(inputDistance2)+ "B" + String(inputDistance3)+ "C");
+        Serial.print(String(mpu.getAngleX()) + "D" + String(mpu.getAngleY())+ "E" + String(mpu.getAngleZ())+ "F");
+        Serial.println(String(zaiG) + "G" + String(thetaG)+ "H" + String(phaiG)+ "I");
+        delay(250);
+        }
+        while ( setpoint3 < inputDistance3 )
+        {
+        input3 = analogRead(potmeterPin3);    // Read the analog value of the slide potentiometer
+        inputDistance3 = round((input3-120)/27);
+        outputDistance3 = computePID3(inputDistance3);
+        digitalWrite(In13, LOW);
+        digitalWrite(In23, HIGH);
+        analogWrite(ENA3,outputDistance3);
+        getangularveolcity();
+        mpu.update();
+        Serial.print(String(inputDistance1)+ "A" + String(inputDistance2)+ "B" + String(inputDistance3)+ "C");
+        Serial.print(String(mpu.getAngleX()) + "D" + String(mpu.getAngleY())+ "E" + String(mpu.getAngleZ())+ "F");
+        Serial.println(String(zaiG) + "G" + String(thetaG)+ "H" + String(phaiG)+ "I");       delay(250);
+        }   
+        }
+        digitalWrite(In13, LOW);
+        digitalWrite(In23, LOW);
+        analogWrite(ENA3,255);
+}
+double computePID1(double inp1){     
+        currentTime1 = millis();                //get current time
+        elapsedTime1 = (double)(currentTime1 - previousTime1);        //compute time elapsed from previous computation
+        error1 = setpoint1 - inp1;                                // determine error
+        cumError1 += error1 * elapsedTime1;                // compute integral
+        rateError1 = (error1 - lastError1)/elapsedTime1;   // compute derivative
+        double out1 = kp1*error1 + ki1*cumError1 + kd1*rateError1;                //PID output               
+        lastError1 = error1;                                //remember current error
+        previousTime1 = currentTime1;                        //remember current time
+        out1=255;
+        return out1;                                        //have function return the PID output
+}
+double computePID2(double inp2){     
+        currentTime2 = millis();                //get current time
+        elapsedTime2 = (double)(currentTime2 - previousTime2);        //compute time elapsed from previous computation
+        error2 = setpoint2 - inp2;                                // determine error
+        cumError2 += error2 * elapsedTime2;                // compute integral
+        rateError2 = (error2 - lastError2)/elapsedTime2;   // compute derivative
+        double out2 = kp2*error2 + ki2*cumError2 + kd2*rateError2;                //PID output               
+        lastError2 = error2;                                //remember current error
+        previousTime2 = currentTime2;                        //remember current time
+        out2=255;
+        return out2;                                        //have function return the PID output
+}
+double computePID3(double inp3){     
+        currentTime3 = millis();                //get current time
+        elapsedTime3 = (double)(currentTime3 - previousTime3);        //compute time elapsed from previous computation
+        error3 = setpoint3 - inp3;                                // determine error
+        cumError3 += error3 * elapsedTime3;                // compute integral
+        rateError3 = (error3 - lastError3)/elapsedTime3;   // compute derivative
+        double out3 = kp3*error3 + ki3*cumError3 + kd3*rateError3;                //PID output               
+        lastError3 = error3;                                //remember current error
+        previousTime3 = currentTime3;                        //remember current time
+        out3=255;
+        return out3;                                        //have function return the PID output
+
+}
+void Receive_Serial_Data ()
+{
+     while(Serial.available()>0) //get the number of bytes (characters) available that already arrived and stored in the serial receive buffer
+    {
+        c = Serial.read(); //read incoming serial data and store it into c variable
+        if(c == '\n'){break;} //if data inside c equals to end character (#) then execute this
+        else         {dataIn += c;} //append data in c and store it in this variable
+        if(c=='\n')
+        {
+          degree = dataIn.toInt();
+          c=0;
+          dataIn="";
+          }
+    }
+}
+void Parse_the_data()
+{
+  String str_setpoint1, str_setpoint2, str_setpoint3;
+  indexOfA = dataIn.indexOf("A");
+  indexOfB = dataIn.indexOf("B");
+  indexOfC = dataIn.indexOf("C");
+
+  if (indexOfA > -1 ){ str_setpoint1 = dataIn.substring(0,indexOfA); setpoint1 = str_setpoint1.toDouble(); } 
+  if (indexOfB > -1 ){ str_setpoint2 = dataIn.substring(indexOfA+1 ,indexOfB); setpoint2 = str_setpoint2.toDouble(); } 
+  if (indexOfC > -1 ){ str_setpoint3 = dataIn.substring(indexOfB+1 ,indexOfC); setpoint3 = str_setpoint3.toDouble(); } 
+}
+void getangularveolcity()
+{
+  // === Read gyroscope data === //
+  Wire.beginTransmission(MPU);
+  Wire.write(0x43); // Gyro data first register address 0x43
+  Wire.endTransmission(false);
+  Wire.requestFrom(MPU, 6, true); // Read 4 registers total, each axis value is stored in 2 registers
+  GyroX = (Wire.read() << 8 | Wire.read()) / 131.0; // For a 250deg/s range we have to divide first the raw value by 131.0, according to the datasheet
+  GyroY = (Wire.read() << 8 | Wire.read()) / 131.0;
+  GyroZ = (Wire.read() << 8 | Wire.read()) / 131.0;
+  // Correct the outputs with the calculated error values
+  GyroX = GyroX + 0.46; // GyroErrorX ~(-0.56)
+  GyroY = GyroY + 2.05; // GyroErrorY ~(2)
+  GyroZ = GyroZ + 0.44; // GyroErrorZ ~ (-0.8)
+  getThetas();
+  }
+void getThetas ()
+{
+  float zai[]={0}, theta[]={0}, phai[]={0};
+  float zaidot[]={0}, thetadot[]={0}, phaidot[]={0};
+  previousTime = currentTime;        // Previous time is stored before the actual time read
+  currentTime = millis();            // Current time actual time read
+  elapsedTime = (currentTime - previousTime) / 250; // Divide by 1000 to get seconds
+  zai[0]=0,theta[0]=0,phai[0]=0;
+  zaidot[0]=0,thetadot[0]=0 , phaidot[0]=0;
+  zaidot[i+1] = (sin( phai[i])*(1/cos(theta[i]))* GyroY + cos( phai[i])*(1/cos(theta[i]))*GyroZ)+ zaidot[i] ;
+  thetadot[i+1] = (cos( phai[i]) * GyroY - sin( phai[i])* GyroZ)+ thetadot[i] ;
+  phaidot[i+1] = (GyroX + sin( phai[i])* tan(theta[i]) * GyroY + cos( phai[i])* tan(theta[i])* GyroZ)+ phaidot[i] ;
+  zai[i+1] = (sin( phai[i])*(1/cos(theta[i]))* GyroY + cos( phai[i])*(1/cos(theta[i]))*GyroZ)* elapsedTime + zai[i];
+  theta[i+1] = (cos( phai[i])* GyroY - sin( phai[i])* GyroZ)* elapsedTime + theta[i];
+  phai[i+1] = (GyroX + sin( phai[i])* tan(theta[i]) * GyroY + cos( phai[i])* tan(theta[i])* GyroZ) * elapsedTime + phai[i];
+   zaiG=zai[i+1]      , thetaG=theta[i+1]      , phaiG=phai[i+1];
+   zaidotG=zaidot[i+1], thetadotG=thetadot[i+1], phaidotG=phaidot[i+1];
+  i++;
+}
